@@ -124,7 +124,7 @@ All configuration lives in `.env` (created from `.env.example`, git-ignored).
 | `MYSQL_*`, `MYSQL_PORT` | Database credentials and host port (default `3307`). |
 | `FRONTEND_PORT`, `BACKEND_PORT` | Public ports (defaults `8080`, `8081`). |
 | `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD` | Optional administrator seeded at startup. Leave the password blank to skip. |
-| `DEMO_BUS_DAYS_AHEAD` | Rolling window of generated demo bus trips (default 30 days). |
+| `DEMO_BUS_DAYS_AHEAD` | Startup window of generated demo bus trips (default 30 days). Other future dates are filled on demand when searched. |
 | `BUS_PROVIDER_MODE`, `RAILWAY_PROVIDER_MODE`, `FLIGHT_PROVIDER_MODE`, `MTC_PROVIDER_MODE` | `DEMO`, `LIVE`, `EXTERNAL_HANDOFF` or `UNAVAILABLE`. Only demo/handoff behaviour is implemented in this release. |
 | `BUS_LIVE_PROVIDER`, `BUS_LIVE_BASE_URL`, `BUS_LIVE_API_KEY`, `BUS_LIVE_API_SECRET` | Backend-only placeholders for an authorized live bus adapter. They are never sent to React. Credentials alone do not enable live results. |
 | `PAYMENT_PROVIDER` | Only `demo` is implemented. |
@@ -151,15 +151,18 @@ To connect an authorized bus inventory provider:
 
 `BUS_PROVIDER_MODE=DEMO` remains available for development. Demo results stay labelled and expose `liveDataConnected: false`.
 
+In `DEMO` mode every future route/date search is filled with generated sample inventory. The first search for an unseeded city pair creates a demo corridor, schedules, trips and seat maps for that date; search never returns an empty page merely because the route was not part of the original seed.
+
 Bus search responses also include `diagnostics.status`, which separates:
 
-- `ORIGIN_NOT_COVERED` / `DESTINATION_NOT_COVERED` — unknown demo city
-- `ROUTE_NOT_COVERED` — both cities exist, but no direct seeded route (for example, Hyderabad → Digha)
-- `OUTSIDE_DEMO_WINDOW` — route exists, date is outside the generated inventory window
-- `NO_TRIPS_ON_DATE` — route is covered, but no sample trip was generated for that date
+- `OK` — sample coaches are available (seeded or generated on demand)
+- `ORIGIN_NOT_COVERED` / `DESTINATION_NOT_COVERED` — only used when live inventory does not include a city
+- `ROUTE_NOT_COVERED` — only used when live inventory has no direct route
+- `OUTSIDE_DEMO_WINDOW` — retained for non-demo provider modes
+- `NO_TRIPS_ON_DATE` — retained for non-demo provider modes
 - `FILTERED_OUT` — trips exist, but none match the requested filters
 
-The seeded demo network includes `Kolkata ↔ Digha` and `Hyderabad ↔ Vijayawada`, but not `Hyderabad ↔ Digha`. That route is reported as uncovered; no replacement coaches are fabricated.
+Generated rows are always marked `source = DEMO` and the API keeps reporting `liveDataConnected: false`; sample data is never presented as live inventory. Train searches follow the same pattern: unknown stations and unseeded routes receive generated demo stations, services, classes and route stops for the selected date.
 
 ---
 
@@ -223,7 +226,7 @@ The script:
 3. Runs the frontend Vitest suite on the host with Bun.
 4. Deletes the throwaway database.
 
-Current coverage includes public catalog/search endpoints, JSON 404s, CSRF enforcement, auth failures, duplicate registration, the complete bus register → search → hold → demo-pay → cancel flow, and the IRCTC handoff contract for trains.
+Current coverage includes public catalog/search endpoints, generated demo inventory for unseeded bus routes and train stations, JSON 404s, CSRF enforcement, auth failures, duplicate registration, the complete bus register → search → hold → demo-pay → cancel flow, and the IRCTC handoff contract for trains.
 
 Backend reports are written to `backend/target/surefire-reports/`.
 
