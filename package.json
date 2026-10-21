@@ -1,0 +1,22 @@
+{
+  "name": "bookmyticket",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Unified travel, transport and tourism booking platform (buses, premium buses, trains, flights, Chennai MTC, holiday packages)",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "build": "bash scripts/build.sh",
+    "up": "docker compose up -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f --tail=200",
+    "status": "docker compose ps",
+    "restart": "bash scripts/restart.sh",
+    "test": "bash scripts/test.sh",
+    "db:migrate": "bash scripts/db-migrate.sh",
+    "clean": "bash scripts/clean.sh",
+    "reset": "bash scripts/reset.sh"
+  }
+}

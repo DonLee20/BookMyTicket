@@ -1,0 +1,37 @@
+package com.bookmyticket.transport.flight.dto;
+
+public record FlightOffer(
+        String offerRef,
+        Long scheduleId,
+        String airlineCode,
+        String airlineName,
+        String flightNumber,
+        String originIata,
+        String destinationIata,
+        String originCity,
+        String destinationCity,
+        String departLocal,
+        String arriveLocal,
+        String originTimezone,
+        String destinationTimezone,
+        String journeyDate,
+        int durationMinutes,
+        int stops,
+        String aircraft,
+        String cabin,
+        String cabinLabel,
+        long totalPriceMinor,
+        long pricePerTravellerMinor,
+        String currency,
+        String priceDisplay,
+        String baggageNote,
+        boolean refundable,
+        boolean changeable,
+        String fareConditions,
+        Integer seatsLeft,
+        String providerMode,
+        String sourceTimestamp,
+        boolean stale,
+        String externalHandoffUrl
+) {
+}

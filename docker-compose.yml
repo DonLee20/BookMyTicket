@@ -1,0 +1,106 @@
+services:
+  travel-mysql:
+    image: mysql:8.4
+    container_name: travel-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-bookmyticket}
+      MYSQL_USER: ${MYSQL_USER:-bookmyticket}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme_local_dev}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme_local_root}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+00:00
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    volumes:
+      - bookmyticket_mysql_data:/var/lib/mysql
+    networks:
+      - travel-net
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  travel-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: bookmyticket/backend:latest
+    container_name: travel-backend
+    restart: unless-stopped
+    depends_on:
+      travel-mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${BACKEND_PROFILE:-docker}
+      MYSQL_HOST: travel-mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-bookmyticket}
+      MYSQL_USER: ${MYSQL_USER:-bookmyticket}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme_local_dev}
+      DEMO_BUS_DAYS_AHEAD: ${DEMO_BUS_DAYS_AHEAD:-30}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      BUS_PROVIDER_MODE: ${BUS_PROVIDER_MODE:-DEMO}
+      BUS_LIVE_PROVIDER: ${BUS_LIVE_PROVIDER:-}
+      BUS_LIVE_BASE_URL: ${BUS_LIVE_BASE_URL:-}
+      BUS_LIVE_API_KEY: ${BUS_LIVE_API_KEY:-}
+      BUS_LIVE_API_SECRET: ${BUS_LIVE_API_SECRET:-}
+      RAILWAY_PROVIDER_MODE: ${RAILWAY_PROVIDER_MODE:-DEMO}
+      FLIGHT_PROVIDER_MODE: ${FLIGHT_PROVIDER_MODE:-DEMO}
+      MTC_PROVIDER_MODE: ${MTC_PROVIDER_MODE:-DEMO}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-demo}
+      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-dev_webhook_secret_change_me}
+      IRCTC_OFFICIAL_HANDOFF_URL: ${IRCTC_OFFICIAL_HANDOFF_URL:-https://www.irctc.co.in/nget/train-search}
+      MTC_OFFICIAL_INFO_URL: ${MTC_OFFICIAL_INFO_URL:-https://www.mtcbus.tn.gov.in/}
+      AMADEUS_CLIENT_ID: ${AMADEUS_CLIENT_ID:-}
+      AMADEUS_CLIENT_SECRET: ${AMADEUS_CLIENT_SECRET:-}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=65 -XX:InitialRAMPercentage=25"
+    ports:
+      - "${BACKEND_PORT:-8081}:8080"
+    networks:
+      - travel-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  travel-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: bookmyticket/frontend:latest
+    container_name: travel-frontend
+    restart: unless-stopped
+    depends_on:
+      travel-backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - travel-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  bookmyticket_mysql_data:
+    name: bookmyticket_mysql_data
+
+networks:
+  travel-net:
+    name: bookmyticket-travel-net
+    driver: bridge

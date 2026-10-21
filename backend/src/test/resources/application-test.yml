@@ -1,0 +1,31 @@
+# Test profile: uses the throwaway MySQL started by scripts/test.sh.
+#
+# scripts/test.sh exports TEST_DB_URL/TEST_DB_USER/TEST_DB_PASSWORD for the
+# Maven container; the fallbacks match its defaults so a developer can also run
+# `mvn test` against a local test database.
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:mysql://127.0.0.1:13307/bookmyticket_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&rewriteBatchedStatements=true}
+    username: ${TEST_DB_USER:bmt_test}
+    password: ${TEST_DB_PASSWORD:bmt_test_pw}
+    hikari:
+      maximum-pool-size: 6
+      minimum-idle: 1
+      pool-name: travel-test-pool
+  flyway:
+    enabled: true
+    clean-disabled: false
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+app:
+  # Keep the generated demo inventory small so the test database stays quick.
+  demo:
+    bus-days-ahead: 2
+    auto-seed-inventory: true
+  admin:
+    email: admin@bookmyticket.test
+    name: Test Administrator
+    password: TestAdmin#2026
