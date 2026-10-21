@@ -2,6 +2,7 @@ package com.bookmyticket.transport.bus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -26,4 +27,13 @@ public interface BusScheduleRepository extends JpaRepository<BusSchedule, Long> 
             order by c.id
             """)
     List<BusCorridor> findActiveCorridors();
+
+    @Query("""
+            select s from BusSchedule s
+            join fetch s.operator o
+            where s.corridor.id = :corridorId
+              and s.active = true
+            order by s.departMinutes
+            """)
+    List<BusSchedule> findActiveByCorridorId(@Param("corridorId") Long corridorId);
 }

@@ -26,11 +26,13 @@ public class TrainSearchService {
     private final ProviderRegistry providerRegistry;
     private final RailwayProvider railwayProvider;
     private final ProviderCallRecorder callRecorder;
+    private final DemoTrainInventoryService demoTrainInventoryService;
 
     public TrainSearchService(RailwayStationRepository stationRepository, TrainServiceRepository serviceRepository,
                               TrainServiceClassRepository classRepository, TrainRouteStopRepository routeStopRepository,
                               ProviderRegistry providerRegistry, RailwayProvider railwayProvider,
-                              ProviderCallRecorder callRecorder) {
+                              ProviderCallRecorder callRecorder,
+                              DemoTrainInventoryService demoTrainInventoryService) {
         this.stationRepository = stationRepository;
         this.serviceRepository = serviceRepository;
         this.classRepository = classRepository;
@@ -38,6 +40,7 @@ public class TrainSearchService {
         this.providerRegistry = providerRegistry;
         this.railwayProvider = railwayProvider;
         this.callRecorder = callRecorder;
+        this.demoTrainInventoryService = demoTrainInventoryService;
     }
 
     public List<TrainDtos.StationOption> stations(String query) {
@@ -49,7 +52,7 @@ public class TrainSearchService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TrainDtos.SearchResponse search(TrainDtos.SearchRequest request) {
         providerRegistry.ensureAvailable(RailwayProvider.class);
         ProviderMode mode = providerRegistry.effectiveModeFor(RailwayProvider.class);
@@ -57,8 +60,15 @@ public class TrainSearchService {
         if (request.date().isBefore(LocalDate.now())) {
             throw ApiException.badRequest("PAST_DATE", "Please choose today or a future travel date.");
         }
-        List<Long> originIds = resolveStationIds(request.from(), "origin");
-        List<Long> destinationIds = resolveStationIds(request.to(), "destination");
+        List<Long> originIds = demoTrainInventoryService.resolveStationIds(request.from(), "origin");
+        List<Long> destinationIds = demoTrainInventoryService.resolveStationIds(request.to(), "destination");
+        if (originIds.equals(destinationIds)) {
+            throw ApiException.badRequest("SAME_STATION", "Origin and destination stations must differ.");
+        }
+        if (mode == ProviderMode.DEMO) {
+            demoTrainInventoryService.ensureServices(originIds, destinationIds, request.date(),
+                    request.from(), request.to());
+        }
 
         List<TrainService> services = callRecorder.timed(railwayProvider.id(), "RAILWAY", "SEARCH",
                 request.from() + "->" + request.to() + "@" + request.date(),
@@ -133,24 +143,6 @@ public class TrainSearchService {
                 service.getTotalDistanceKm(),
                 classes,
                 stops);
-    }
-
-    private List<Long> resolveStationIds(String query, String role) {
-        String trimmed = query.trim();
-        var byCode = stationRepository.findByCodeIgnoreCase(trimmed);
-        if (byCode.isPresent()) {
-            return List.of(byCode.get().getId());
-        }
-        List<Long> ids = stationRepository.search(trimmed).stream()
-                .filter(s -> s.getCity().equalsIgnoreCase(trimmed)
-                        || s.getName().toLowerCase().contains(trimmed.toLowerCase()))
-                .map(RailwayStation::getId)
-                .toList();
-        if (ids.isEmpty()) {
-            throw ApiException.notFound("STATION_NOT_FOUND",
-                    "No railway station matched '" + trimmed + "' as the " + role + " station. Try a station code like MAS or a city name.");
-        }
-        return ids;
     }
 
     static String durationLabel(int minutes) {

@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { ProviderNotice } from "./Feedback";
 
 describe("ProviderNotice", () => {
-  it("marks demo bus results as not connected to live data and shows the backend setup path", () => {
+  it("presents demo bus results as sample data instead of a live-data failure", () => {
     render(
       <ProviderNotice
         mode="DEMO"
@@ -13,15 +13,27 @@ describe("ProviderNotice", () => {
       />,
     );
 
-    expect(screen.getByText("Live bus data not connected")).toBeInTheDocument();
-    expect(screen.getByText(/BUS_PROVIDER_MODE=LIVE/)).toBeInTheDocument();
-    expect(screen.getByText(/Never expose credentials to React/)).toBeInTheDocument();
+    expect(screen.getByText("Demo sample data")).toBeInTheDocument();
+    expect(screen.getByText(/schedules, fares and seat availability are sample data/)).toBeInTheDocument();
+    expect(screen.queryByText("Live data not connected")).not.toBeInTheDocument();
+  });
+
+  it("still warns when a non-demo provider has no live connection", () => {
+    render(
+      <ProviderNotice
+        mode="EXTERNAL_HANDOFF"
+        message="Search is available; booking continues on the provider channel."
+        liveDataConnected={false}
+      />,
+    );
+
+    expect(screen.getByText("Live data not connected")).toBeInTheDocument();
   });
 
   it("keeps other categories on the normal demo label", () => {
     render(<ProviderNotice mode="DEMO" message="Sample railway data." />);
 
-    expect(screen.getByText("Demo inventory")).toBeInTheDocument();
-    expect(screen.queryByText("Live bus data not connected")).not.toBeInTheDocument();
+    expect(screen.getByText("Demo sample data")).toBeInTheDocument();
+    expect(screen.queryByText("Live data not connected")).not.toBeInTheDocument();
   });
 });

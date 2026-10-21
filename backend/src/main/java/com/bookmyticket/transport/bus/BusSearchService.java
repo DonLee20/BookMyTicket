@@ -4,6 +4,7 @@ import com.bookmyticket.common.ApiException;
 import com.bookmyticket.common.MoneyUtils;
 import com.bookmyticket.common.TimeUtils;
 import com.bookmyticket.config.AppProperties;
+import com.bookmyticket.config.DemoInventorySeeder;
 import com.bookmyticket.provider.ProviderMode;
 import com.bookmyticket.provider.ProviderRegistry;
 import com.bookmyticket.transport.bus.dto.BusDtos;
@@ -27,15 +28,17 @@ public class BusSearchService {
     private final BusTripRepository tripRepository;
     private final BusSeatRepository seatRepository;
     private final BusScheduleRepository scheduleRepository;
+    private final DemoInventorySeeder demoInventorySeeder;
     private final ProviderRegistry providerRegistry;
     private final AppProperties properties;
 
     public BusSearchService(BusTripRepository tripRepository, BusSeatRepository seatRepository,
-                            BusScheduleRepository scheduleRepository, ProviderRegistry providerRegistry,
-                            AppProperties properties) {
+                            BusScheduleRepository scheduleRepository, DemoInventorySeeder demoInventorySeeder,
+                            ProviderRegistry providerRegistry, AppProperties properties) {
         this.tripRepository = tripRepository;
         this.seatRepository = seatRepository;
         this.scheduleRepository = scheduleRepository;
+        this.demoInventorySeeder = demoInventorySeeder;
         this.providerRegistry = providerRegistry;
         this.properties = properties;
     }
@@ -46,7 +49,7 @@ public class BusSearchService {
         return origin ? tripRepository.searchDepartureCities(q) : tripRepository.searchArrivalCities(q);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public BusDtos.SearchResponse search(BusDtos.SearchRequest request) {
         ensureBusAvailable();
         ProviderMode mode = providerRegistry.effectiveModeFor(BusProviderType.TYPE);
@@ -59,6 +62,12 @@ public class BusSearchService {
 
         String from = request.from().trim();
         String to = request.to().trim();
+        if (from.equalsIgnoreCase(to)) {
+            throw ApiException.badRequest("SAME_CITY", "Boarding and destination cities must differ.");
+        }
+        if (mode == ProviderMode.DEMO) {
+            demoInventorySeeder.ensureRouteInventory(from, to, date);
+        }
         List<BusTrip> trips = tripRepository.search(from, to, date);
         Map<Long, Integer> availability = availabilityCounts(trips);
 
@@ -157,7 +166,12 @@ public class BusSearchService {
         boolean dateInWindow = true;
         if (mode == ProviderMode.DEMO) {
             inventoryFrom = today;
+            // Lazily generated inventory covers any future date, so the reported
+            // window always includes the date the customer searched for.
             inventoryTo = today.plusDays(demoDaysAhead());
+            if (request.date().isAfter(inventoryTo)) {
+                inventoryTo = request.date();
+            }
             dateInWindow = !request.date().isBefore(inventoryFrom) && !request.date().isAfter(inventoryTo);
         }
 

@@ -70,9 +70,9 @@ export function TrainPage() {
             </span>
             <h2 className="mt-2">Planning-first rail search</h2>
             <p className="small muted">
-              Compare sample departure times across 29 services and 32 stations, including Shatabdi, Rajdhani, express
-              and superfast patterns. Class availability mirrors typical waiting-list behaviour so you can plan
-              realistically.
+              Compare sample departure times across seeded routes, including Shatabdi, Rajdhani, express and superfast
+              patterns. Any other city pair gets clearly labelled demo services for the date you choose, with sample
+              class availability so you can plan realistically.
             </p>
           </div>
           <div className="card card--pad">
@@ -134,7 +134,8 @@ function TrainResults({ from, to, date, passengers }: { from: string; to: string
       {!loading && data && data.trains.length === 0 && (
         <EmptyState title="No sample services on this route" icon={<TrainFront size={30} aria-hidden="true" />}>
           <p>
-            Try a major station pair such as MAS–CBE, MAS–SBC, MAS–NDLS or CSMT–PUNE. The {data.dataNote}
+            Try another station pair or date. Demo services are generated on demand for routes outside the seeded
+            timetable. {data.dataNote}
           </p>
         </EmptyState>
       )}

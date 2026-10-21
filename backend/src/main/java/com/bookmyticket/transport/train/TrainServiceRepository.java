@@ -9,6 +9,8 @@ import java.util.List;
 
 public interface TrainServiceRepository extends JpaRepository<TrainService, Long> {
 
+    boolean existsByTrainNumber(String trainNumber);
+
     @Query("""
             select distinct t from TrainService t
             join fetch t.originStation os

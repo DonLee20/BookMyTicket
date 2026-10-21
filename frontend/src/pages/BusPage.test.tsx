@@ -48,7 +48,7 @@ describe("bus search diagnostics", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("Live bus data not connected")).toBeInTheDocument();
+    expect(await screen.findByText("Demo sample data")).toBeInTheDocument();
     expect(await screen.findByText("No demo route for this pair")).toBeInTheDocument();
     expect(await screen.findByText("Kolkata → Digha")).toBeInTheDocument();
     expect(screen.queryByText("No sample coaches on this date")).not.toBeInTheDocument();

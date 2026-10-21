@@ -28,7 +28,7 @@ export function BusPage() {
         lede={
           hasSearch
             ? "Compare departures, coach types, boarding points and fares. The provider notice below tells you whether these results are live or clearly labelled demo data."
-            : "Search sample intercity schedules across 24 corridors and 65 operators. Every seat map is generated from the actual coach layout."
+            : "Search sample intercity schedules for any route and date. Every seat map is generated from the actual coach layout."
         }
         crumbs={[{ to: "/", label: "Home" }, { label: "Buses" }]}
       />

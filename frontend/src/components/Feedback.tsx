@@ -66,11 +66,11 @@ export function ProviderNotice({
 }) {
   if (!mode && !message) return null;
   const isDemo = mode === "DEMO";
-  const liveDisconnected = liveDataConnected === false;
-  const title = liveDisconnected
-    ? "Live bus data not connected"
-    : isDemo
-      ? "Demo inventory"
+  const liveDisconnected = liveDataConnected === false && !isDemo;
+  const title = isDemo
+    ? "Demo sample data"
+    : liveDisconnected
+      ? "Live data not connected"
       : mode === "LIVE"
         ? "Live provider"
         : mode ?? "Provider status";
